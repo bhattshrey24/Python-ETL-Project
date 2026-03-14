@@ -6,13 +6,13 @@ BASE_URL = "https://www.alphavantage.co/"
 
 SYMBOLS = {
     # "Apple": "AAPL",
-    # "Microsoft": "MSFT",
-    # "NVIDIA": "NVDA",
-    # "Amazon": "AMZN",
-    # "Alphabet": "GOOGL",
-    # "Meta Platforms": "META",
-    # "Berkshire Hathaway": "BRK.B",
-    # "Tesla": "TSLA"
+    "Microsoft": "MSFT",
+    "NVIDIA": "NVDA",
+    "Amazon": "AMZN",
+    "Alphabet": "GOOGL",
+    "Meta Platforms": "META",
+    "Berkshire Hathaway": "BRK.B",
+    "Tesla": "TSLA",
     "Broadcom": "AVGO",
     "JPMorgan Chase": "JPM"
 }

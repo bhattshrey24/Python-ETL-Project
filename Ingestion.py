@@ -1,11 +1,12 @@
 import requests
-import os
-from dotenv import load_dotenv
 import asyncio
+
+from sqlalchemy import text
+
 from config import *
-from sqlalchemy import create_engine, text
 from datetime import datetime, timezone , date
-from urllib.parse import quote_plus
+from my_db import *
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -160,23 +161,14 @@ def change_structure_for_overview(response):
 # Responsibility : Store the data into DB
 def store_data_to_db(cleaned_data, api_type):
     print("Storing data to db....")
-
-    username = os.getenv("MY_SQL_USERNAME")
-    # password = os.getenv("MY_SQL_PASSWORD")
-    password = quote_plus(os.getenv("MY_SQL_PASSWORD")) # quote_plus convert '@' to %40. So its possible that password might contain '@' which can break the url therefore to fix that we use this which encodes @ -> %40 and then sqlalchemy decodes it back to @
-    host = os.getenv("MY_SQL_HOST")
-    port = os.getenv("MY_SQL_PORT")
-    db = os.getenv("MY_SQL_INGESTION_DB")
-
-    create_db(username, password, host, port, db)
-    create_table(username, password, host, port, db, api_type)
-    load_data(username, password, host, port, db, cleaned_data, api_type)
+    create_db()
+    create_table(api_type)
+    load_data(cleaned_data,api_type)
 
 
 # Responsibility : create database if not exist
-def create_db(username, password, host, port, db):
-    print(f"mysql+pymysql://{username}:{password}@{host}:{port}")
-    engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}:{port}")
+def create_db():
+    engine = get_app_engine()
     with engine.connect() as conn:
         conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {db}"))
         conn.commit()
@@ -184,18 +176,17 @@ def create_db(username, password, host, port, db):
 
 
 # Responsibility : create table based on api_type
-def create_table(username, password, host, port, db, api_type):
+def create_table(api_type):
     if api_type == "timeseries":
         table = os.getenv("MY_SQL_MASTER_TIMESERIES_TABLE")
-        create_table_timeseries(username, password, host, port, db, table)
+        create_table_timeseries(table)
     else:
         table = os.getenv("MY_SQL_MASTER_OVERVIEW_TABLE")
-        create_table_overview(username, password, host, port, db, table)
+        create_table_overview(table)
 
 
-def create_table_timeseries(username, password, host, port, db, table):
-    print(f"mysql+pymysql://{username}:{password}@{host}:{port}/{db}")
-    engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}:{port}/{db}")
+def create_table_timeseries(table):
+    engine = get_db_engine()
     with engine.connect() as conn:
         conn.execute(text(f"""
                 CREATE TABLE IF NOT EXISTS {table} (
@@ -215,9 +206,8 @@ def create_table_timeseries(username, password, host, port, db, table):
         print("Table created")
 
 
-def create_table_overview(username, password, host, port, db, table):
-    engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}:{port}/{db}")
-
+def create_table_overview(table):
+    engine = get_db_engine()
     with engine.connect() as conn:
         conn.execute(text(f"""
             CREATE TABLE IF NOT EXISTS {table} (
@@ -296,19 +286,19 @@ def create_table_overview(username, password, host, port, db, table):
 
 
 # Responsibility : load data to the required table for required api_type
-def load_data(username, password, host, port, db, data, api_type):
+def load_data(data, api_type):
     print("Loading data....")
     if api_type == "timeseries":
         table = os.getenv("MY_SQL_MASTER_TIMESERIES_TABLE")
-        load_data_timeseries(username, password, host, port, db, table, data)
+        load_data_timeseries(table, data)
     else:
         table = os.getenv("MY_SQL_MASTER_OVERVIEW_TABLE")
-        load_data_overview(username, password, host, port, db, table, data)
+        load_data_overview(table, data)
 
 # Responsibility : load data for timeseries master table
-def load_data_timeseries(username, password, host, port, db, table, data):
+def load_data_timeseries(table, data):
 
-    engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}:{port}/{db}")
+    engine = get_db_engine()
 
     columns = [
         "symbol",
@@ -344,10 +334,9 @@ def load_data_timeseries(username, password, host, port, db, table, data):
     print("Data added to table")
 
 # Responsibility : load data for overview master table
-def load_data_overview(username, password, host, port, db, table, data):
+def load_data_overview(table, data):
 
-    engine = create_engine(f"mysql+pymysql://{username}:{password}@{host}:{port}/{db}")
-
+    engine = get_db_engine()
     columns = [
         "symbol","ingestion_date","asset_type","name","description","cik","exchange","currency",
         "country","sector","industry","address","official_site","fiscal_year_end","latest_quarter",
