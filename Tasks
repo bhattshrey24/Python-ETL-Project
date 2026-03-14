@@ -1,0 +1,82 @@
+# Todo
+
+See how we can make it work periodically like automatically fetch data periodically  (optional to implement)
+
+
+Analytics for which I can build views and expose to my client :-
+
+1️⃣ Daily Stock Performance
+
+Purpose: Track price movement.
+
+Metrics:
+
+daily return
+price change
+percentage change
+trading volume
+
+Client value:
+Helps identify daily winners and losers.
+
+2️⃣ Moving Average Indicators
+
+Purpose: Identify trends.
+
+Examples:
+
+7-day moving average
+30-day moving average
+90-day moving average
+
+Client value:
+Used for trend analysis and trading signals.
+
+3️⃣ Volatility Analysis
+
+Purpose: Measure price stability.
+
+Metrics:
+
+rolling volatility
+average price range
+standard deviation of returns
+
+Client value:
+Helps evaluate risk level of a stock.
+
+4️⃣ Sector Performance Dashboard
+
+Using the company overview data.
+
+Metrics:
+
+average return by sector
+average market cap by sector
+number of companies per sector
+
+Client value:
+Shows which industries are performing best.
+
+5️⃣ Top Movers Report
+
+Daily report listing:
+top gainers
+top losers
+highest trading volume
+
+Client value:
+Useful for market monitoring.
+
+6️⃣ Long-Term Performance
+
+Using the 20-year history.
+
+Metrics:
+
+yearly return
+price growth since start date
+cumulative return
+
+Client value:
+Helps investors understand long-term trends.
