@@ -3,10 +3,12 @@ import asyncio
 
 from sqlalchemy import text
 
-from config import *
+from config.app_constants import *
 from datetime import datetime, timezone , date
-from my_db import *
+from config.db_constants import INGESTION_TIMESERIES_TABLE, INGESTION_OVERVIEW_TABLE
+from db.my_db import *
 from dotenv import load_dotenv
+from ingestion.models import *
 
 load_dotenv()
 
@@ -158,11 +160,11 @@ def change_structure_for_overview(response):
 
     return cleaned_data
 
-# Responsibility : Store the data into DB
+# Responsibility : Store the data into db
 def store_data_to_db(cleaned_data, api_type):
     print("Storing data to db....")
     create_db()
-    create_table(api_type)
+    create_table()
     load_data(cleaned_data,api_type)
 
 
@@ -174,125 +176,20 @@ def create_db():
         conn.commit()
         print("Database created")
 
-
 # Responsibility : create table based on api_type
-def create_table(api_type):
-    if api_type == "timeseries":
-        table = os.getenv("MY_SQL_MASTER_TIMESERIES_TABLE")
-        create_table_timeseries(table)
-    else:
-        table = os.getenv("MY_SQL_MASTER_OVERVIEW_TABLE")
-        create_table_overview(table)
-
-
-def create_table_timeseries(table):
+def create_table():
     engine = get_db_engine()
-    with engine.connect() as conn:
-        conn.execute(text(f"""
-                CREATE TABLE IF NOT EXISTS {table} (
-                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                    symbol VARCHAR(10),
-                    ingestion_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    timezone VARCHAR(20),
-                    date DATE,
-                    open FLOAT,
-                    high FLOAT,
-                    low FLOAT,
-                    close FLOAT,
-                    volume BIGINT
-                )
-                """))
-        conn.commit()
-        print("Table created")
-
-
-def create_table_overview(table):
-    engine = get_db_engine()
-    with engine.connect() as conn:
-        conn.execute(text(f"""
-            CREATE TABLE IF NOT EXISTS {table} (
-                id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                symbol VARCHAR(10),
-                ingestion_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-                asset_type VARCHAR(50),
-                name VARCHAR(255),
-                description TEXT,
-                cik VARCHAR(20),
-                exchange VARCHAR(20),
-                currency VARCHAR(10),
-                country VARCHAR(50),
-                sector VARCHAR(100),
-                industry VARCHAR(150),
-                address TEXT,
-                official_site VARCHAR(255),
-
-                fiscal_year_end VARCHAR(20),
-                latest_quarter DATE,
-
-                market_capitalization BIGINT,
-                ebitda BIGINT,
-                pe_ratio FLOAT,
-                peg_ratio FLOAT,
-                book_value FLOAT,
-                dividend_per_share FLOAT,
-                dividend_yield FLOAT,
-                eps FLOAT,
-                revenue_per_share_ttm FLOAT,
-                profit_margin FLOAT,
-                operating_margin_ttm FLOAT,
-                return_on_assets_ttm FLOAT,
-                return_on_equity_ttm FLOAT,
-                revenue_ttm BIGINT,
-                gross_profit_ttm BIGINT,
-                diluted_eps_ttm FLOAT,
-
-                quarterly_earnings_growth_yoy FLOAT,
-                quarterly_revenue_growth_yoy FLOAT,
-
-                analyst_target_price FLOAT,
-                analyst_rating_strong_buy INT,
-                analyst_rating_buy INT,
-                analyst_rating_hold INT,
-                analyst_rating_sell INT,
-                analyst_rating_strong_sell INT,
-
-                trailing_pe FLOAT,
-                forward_pe FLOAT,
-                price_to_sales_ratio_ttm FLOAT,
-                price_to_book_ratio FLOAT,
-                ev_to_revenue FLOAT,
-                ev_to_ebitda FLOAT,
-
-                beta FLOAT,
-                week_52_high FLOAT,
-                week_52_low FLOAT,
-                moving_avg_50d FLOAT,
-                moving_avg_200d FLOAT,
-
-                shares_outstanding BIGINT,
-                shares_float BIGINT,
-                percent_insiders FLOAT,
-                percent_institutions FLOAT,
-
-                dividend_date DATE,
-                ex_dividend_date DATE
-
-            )
-        """))
-
-        conn.commit()
-        print("Overview table created")
-
+    Base.metadata.create_all(engine) # Creates all the tables
+    print("Tables created if not present")
 
 # Responsibility : load data to the required table for required api_type
 def load_data(data, api_type):
     print("Loading data....")
     if api_type == "timeseries":
-        table = os.getenv("MY_SQL_MASTER_TIMESERIES_TABLE")
+        table = INGESTION_TIMESERIES_TABLE
         load_data_timeseries(table, data)
     else:
-        table = os.getenv("MY_SQL_MASTER_OVERVIEW_TABLE")
+        table = INGESTION_OVERVIEW_TABLE
         load_data_overview(table, data)
 
 # Responsibility : load data for timeseries master table

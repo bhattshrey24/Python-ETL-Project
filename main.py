@@ -1,8 +1,6 @@
 
-from Ingestion import ingest_data
 import asyncio
-from Pipeline import main
-from config import BASE_URL # Can even import just variables
+from pipeline import main
 
 if __name__ == '__main__':
     asyncio.run(main())

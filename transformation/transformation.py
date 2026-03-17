@@ -1,8 +1,4 @@
 
-
-def flatten_data():
-    print("Flattening data....")
-
 def clean_data():
     print("Cleaning data....")
 

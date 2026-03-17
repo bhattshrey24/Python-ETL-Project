@@ -5,7 +5,7 @@
 BASE_URL = "https://www.alphavantage.co/"
 
 SYMBOLS = {
-    # "Apple": "AAPL",
+     # "Apple": "AAPL"
     "Microsoft": "MSFT",
     "NVIDIA": "NVDA",
     "Amazon": "AMZN",
