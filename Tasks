@@ -1,6 +1,15 @@
 # Todo
+    Think how to handle new incoming data like when this is automated and we do api call to pull new data or updating
+        old data like in overview table some detail might change related to a stock.
+        Solution : for initial load the table will be empty so in url the 'outputsize' becomes full
+        and for subsequent calls it will become compact which will give just latest 100 records and
+        out of these also we will only do upsert so that we don't add duplicate records again
+        and again. For date we will use last max date from the table
+    Create all the dynamic sql queries (for clean, bad and business logic tables)
+    Import them into function (see how to bulk import)
+    Run sql command in batch (like some in batch while some sequentially)
+    See how we can make it work periodically like automatically fetch data periodically  (optional to implement)
 
-See how we can make it work periodically like automatically fetch data periodically  (optional to implement)
 
 
 Analytics for which I can build views and expose to my client :-
@@ -80,3 +89,5 @@ cumulative return
 
 Client value:
 Helps investors understand long-term trends.
+
+

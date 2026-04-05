@@ -5,7 +5,7 @@ from sqlalchemy import text
 
 from config.app_constants import *
 from datetime import datetime, timezone , date
-from config.db_constants import INGESTION_TIMESERIES_TABLE, INGESTION_OVERVIEW_TABLE
+from config.db_constants import INGESTION_TIMESERIES_TABLE, INGESTION_OVERVIEW_TABLE# I guess this triggers registering of these ORM classes to Base
 from db.my_db import *
 from dotenv import load_dotenv
 from ingestion.models import *
@@ -33,14 +33,12 @@ async def ingest_from_api(function):
         complete_result.append(result)
     return complete_result
 
-
 # Responsibility : To call api and get result for single symbol
 async def ingest_data_for_symbol(symbol, function):
     await asyncio.sleep(1)  # due to API limitation in free package we have to add 1 second delay
     api_key = os.getenv("API_KEY")
     url = f"{BASE_URL}query?function={function}&symbol={symbol}&apikey={api_key}"
     return requests.get(url).json() # todo change this to aiohttp since requests is actually blocking
-
 
 # Responsibility : To change the json response into the required table structure
 def change_structure(response, api_type):
@@ -49,7 +47,6 @@ def change_structure(response, api_type):
     else:
         data = change_structure_for_overview(response)
     return data
-
 
 # Responsibility : To change structure for overview response into the required table structure
 def change_structure_for_timeseries(response):
@@ -78,7 +75,6 @@ def change_structure_for_timeseries(response):
             cleaned_data.append(row)
 
     return cleaned_data
-
 
 # Responsibility : To change structure for overview response into the required table structure
 def change_structure_for_overview(response):
@@ -167,7 +163,6 @@ def store_data_to_db(cleaned_data, api_type):
     create_table()
     load_data(cleaned_data,api_type)
 
-
 # Responsibility : create database if not exist
 def create_db():
     engine = get_app_engine()
@@ -179,8 +174,9 @@ def create_db():
 # Responsibility : create table based on api_type
 def create_table():
     engine = get_db_engine()
-    Base.metadata.create_all(engine) # Creates all the tables
-    print("Tables created if not present")
+    # Base.metadata.create_all(engine) # Creates all the tables
+    Base.metadata.create_all(engine, tables=[MasterStockTable.__table__,MasterOverviewTable.__table__]) # this way we only create Ingestion tables right now
+    print("Ingestion Tables created if not present")
 
 # Responsibility : load data to the required table for required api_type
 def load_data(data, api_type):
@@ -293,7 +289,6 @@ def load_data_overview(table, data):
         conn.commit()
 
     print("Overview data added to table")
-
 
 # Responsibility : Api returns everything as String so it might return "None" for float type or any other unexpected result so in order to tackle that this function cleans the data if its weird
 def clean(value, dtype):
