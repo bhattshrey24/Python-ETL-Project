@@ -17,7 +17,10 @@ import os
 
 async def transform_data():
     create_table()
+    run_all_transformations()
+    print("Transforming data....")
 
+def run_all_transformations():
     execute_transformation(
         filename="create_clean_overview_table.sql",
         target_table=f"{MY_DB}.{TRANSFORMATION_CLEANED_OVERVIEW_TABLE}",
@@ -53,8 +56,6 @@ async def transform_data():
         target_table=f"{MY_DB}.{TRANSFORMATION_STOCK_MOVING_AVERAGES_TABLE}",
         source_table=f"{MY_DB}.{TRANSFORMATION_CLEANED_TIMESERIES_TABLE}",
     )
-
-    print("Transforming data....")
 
 
 def create_table():
