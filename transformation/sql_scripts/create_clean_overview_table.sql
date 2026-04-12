@@ -1,6 +1,5 @@
-INSERT INTO {target_table} (
+INSERT IGNORE INTO {target_table} (
 	symbol
-	,ingestion_date
 	,asset_type
 	,name
 	,description
@@ -57,7 +56,6 @@ INSERT INTO {target_table} (
 	,ex_dividend_date
 	)
 SELECT TRIM(symbol)
-	,CURRENT_TIMESTAMP AS ingestion_date
 	,asset_type
 	,name
 	,description

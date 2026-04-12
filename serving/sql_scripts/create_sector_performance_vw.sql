@@ -2,7 +2,6 @@ CREATE
 	OR REPLACE VIEW {view_name} AS
 
 SELECT sector
-	,ingestion_date
 	,avg_market_cap_by_sector
 	,total_market_cap
 	,max_market_cap

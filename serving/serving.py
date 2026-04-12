@@ -10,11 +10,12 @@ from config.db_constants import MY_DB, SERVING_TIMESERIES_VW, TRANSFORMATION_CLE
 from db.my_db import get_db_engine
 
 
-async def serve_data() :
+async def serve_data():
     create_views()
     print("exposing data ...")
 
-def create_views() :
+
+def create_views():
     execute_transformation(
         filename="create_timeseries_vw.sql",
         view_name=f"{MY_DB}.{SERVING_TIMESERIES_VW}",
@@ -42,16 +43,16 @@ def create_views() :
     )
     print("views created")
 
-def load_sql(filename: str):
 
+def load_sql(filename: str):
     base_dir = os.path.dirname(os.path.abspath(__file__))  # serving/
     sql_path = os.path.join(base_dir, "sql_scripts", filename)
 
     with open(sql_path, "r") as f:
         return f.read()
 
-def execute_transformation(filename: str, source_table: str, view_name: str):
 
+def execute_transformation(filename: str, source_table: str, view_name: str):
     raw_sql = load_sql(filename)
 
     # Inject table names into placeholders
@@ -60,4 +61,3 @@ def execute_transformation(filename: str, source_table: str, view_name: str):
     with engine.begin() as conn:  # begin() auto-commits or rolls back on error
         conn.execute(text(final_sql))
         print(f"{filename} executed successfully")
-

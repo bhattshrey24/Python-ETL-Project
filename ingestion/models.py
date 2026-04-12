@@ -7,13 +7,11 @@ from db.my_db import Base
 class MasterStockTable(Base):
     __tablename__ = INGESTION_TIMESERIES_TABLE
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True) # creating surrogate key because API can give any row as null so we cannot make any row as PK right now
-
-    symbol = Column(String(10))
+    symbol = Column(String(10),primary_key=True)
     ingestion_date = Column(DateTime, server_default=func.current_timestamp())
 
     timezone = Column(String(20))
-    date = Column(Date)
+    date = Column(Date,primary_key=True)
 
     open = Column(Float)
     high = Column(Float)
@@ -22,13 +20,10 @@ class MasterStockTable(Base):
 
     volume = Column(BigInteger)
 
-
 class MasterOverviewTable(Base):
     __tablename__ = INGESTION_OVERVIEW_TABLE
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-
-    symbol = Column(String(10))
+    symbol = Column(String(10),primary_key=True)
     ingestion_date = Column(DateTime, server_default=func.current_timestamp())
 
     asset_type = Column(String(50))

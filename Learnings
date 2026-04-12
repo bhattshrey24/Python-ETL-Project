@@ -1,0 +1,8 @@
+While ingesting data I wanted to have surrogate key because API was very unpredictable and was giving
+nulls for symbol as well So in order to tackle it I thought of using surrogate key but then it prevented
+me from implementing Upsert Logic at ingestion layer because we need some valid PK to know if record is
+duplicate or new. So I rejected rows in ingestion layer itself which had null for symbol and date because these were
+my PK. So basically I did some amount of data cleaning at ingestion layer
+
+I did not choose Power BI because it did not had free version for mac and I wanted to showcase my python skills
+because of which I used streamlit

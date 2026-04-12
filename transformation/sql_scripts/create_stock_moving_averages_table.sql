@@ -1,7 +1,6 @@
-INSERT INTO {target_table} (
+INSERT IGNORE INTO {target_table} (
 	symbol
 	,`date`
-	,ingestion_date
 	,timezone
 	,`close`
 	,ma_7
@@ -15,7 +14,6 @@ INSERT INTO {target_table} (
 	)
 SELECT symbol
 	,`date`
-	,CURRENT_TIMESTAMP AS ingestion_date
 	,timezone
 	,`close`
 	,ma_7

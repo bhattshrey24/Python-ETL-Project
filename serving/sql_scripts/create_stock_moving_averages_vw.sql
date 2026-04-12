@@ -3,7 +3,6 @@ CREATE
 
 SELECT symbol
 	,`date`
-	,ingestion_date
 	,timezone
 	,`close`
 	,ma_7

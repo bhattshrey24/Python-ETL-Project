@@ -11,14 +11,17 @@ from config.db_constants import (
     TRANSFORMATION_STOCK_MOVING_AVERAGES_TABLE,
 )
 from sqlalchemy import text
-from db.my_db import get_db_engine,Base
-from transformation.models import CleanedTimeseriesTable, BadTimeseriesTable, CleanedOverviewTable, BadOverviewTable,DailyStockPerformance,StockMovingAverages,SectorPerformance
+from db.my_db import get_db_engine, Base
+from transformation.models import CleanedTimeseriesTable, BadTimeseriesTable, CleanedOverviewTable, BadOverviewTable, \
+    DailyStockPerformance, StockMovingAverages, SectorPerformance
 import os
+
 
 async def transform_data():
     create_table()
     run_all_transformations()
     print("Transforming data....")
+
 
 def run_all_transformations():
     execute_transformation(
@@ -104,4 +107,3 @@ def execute_transformation(filename: str, source_table: str, target_table: str):
     with engine.begin() as conn:  # begin() auto-commits or rolls back on error
         conn.execute(text(final_sql))
         print(f"{filename} executed successfully")
-

@@ -1,7 +1,6 @@
-INSERT INTO {target_table} (
+INSERT IGNORE INTO {target_table} (
   `date`,
   symbol,
-  ingestion_date,
   timezone,
   `open`,
   high,
@@ -13,7 +12,6 @@ INSERT INTO {target_table} (
 SELECT
   `date`,
   symbol,
-  CURRENT_TIMESTAMP AS ingestion_date,
   timezone,
   `open`,
   high,

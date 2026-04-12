@@ -24,10 +24,9 @@ class CleanedTimeseriesTable(Base):
 class BadTimeseriesTable(Base):
 
     __tablename__ = TRANSFORMATION_BAD_TIMESERIES_TABLE
-    id = Column(BigInteger, primary_key=True, autoincrement=True) # creating surrogate key because API can give any row as null so we cannot make any row as PK right now
 
-    date = Column(Date)
-    symbol = Column(String(10)) # because on a single day for each company there will be just one OHLC
+    date = Column(Date, primary_key=True)
+    symbol = Column(String(10), primary_key=True)
 
     ingestion_date = Column(DateTime, server_default=func.current_timestamp())
 
@@ -45,7 +44,6 @@ class CleanedOverviewTable(Base):
     __tablename__ = TRANSFORMATION_CLEANED_OVERVIEW_TABLE
 
     symbol = Column(String(10), primary_key=True)
-
     ingestion_date = Column(DateTime, server_default=func.current_timestamp())
 
     asset_type = Column(String(50))
@@ -130,10 +128,8 @@ class CleanedOverviewTable(Base):
 class BadOverviewTable(Base):
     __tablename__ = TRANSFORMATION_BAD_OVERVIEW_TABLE
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True) # creating surrogate key because API can give any row as null so we cannot make any row as PK right now
-
-    symbol = Column(String(10))
-    ingestion_date = Column(DateTime)
+    symbol = Column(String(10), primary_key=True)
+    ingestion_date = Column(DateTime, server_default=func.current_timestamp())
 
     asset_type = Column(String(50))
     name = Column(String(255))

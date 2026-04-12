@@ -1,7 +1,6 @@
-INSERT INTO {target_table} (
+INSERT IGNORE INTO {target_table} (
   `date`,
   symbol,
-  ingestion_date,
   timezone,
   `open`,
   high,
@@ -12,7 +11,6 @@ INSERT INTO {target_table} (
 SELECT
   STR_TO_DATE(`date`, '%Y-%m-%d') AS `date`,
   TRIM(symbol),
-  CURRENT_TIMESTAMP AS ingestion_date,
   timezone,
   `open`,
   high,

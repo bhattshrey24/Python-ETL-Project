@@ -3,7 +3,6 @@ CREATE
 
 SELECT `date`
 	,symbol
-	,ingestion_date
 	,timezone
 	,`open`
 	,high

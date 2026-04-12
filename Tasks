@@ -1,8 +1,11 @@
 # Todo
-    1 Think how to handle full and delta load (maybe use 'compact' and 'full' in api based on if table is empty or full)
+    1 (Its a premium feature to use full, we are anyways using compact only) Think how to handle full and delta
+        load (maybe use 'compact' and 'full' in api based on if table is empty or full)
     2 Add merge or upsert logic to tables so that you don't get duplicate
     3 Think what to show in dashboard (minimal UI only)
     4 Add streamlit logic for dashboard
     5 Add Proper Log and polish remaining project
-    6 Deploy dashboard and mysql server on web so that you can give link and anyone can see it
+    6 Add a refresh data button on dashboard
+    7 Deploy dashboard and mysql server on web so that you can give link and anyone can see it
+
 

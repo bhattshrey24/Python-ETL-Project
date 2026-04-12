@@ -2,7 +2,6 @@ CREATE
 	OR REPLACE VIEW {view_name} AS
 
 SELECT symbol
-	,ingestion_date
 	,asset_type
 	,name
 	,description
