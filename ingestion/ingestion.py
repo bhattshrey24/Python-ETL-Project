@@ -1,5 +1,6 @@
 import requests
 import asyncio
+import aiohttp
 
 from sqlalchemy import text
 
@@ -16,32 +17,51 @@ load_dotenv()
 
 # Responsibility : Ingest data from different URLs
 async def ingest_data():
-    # timeseries_response = await ingest_from_api("TIME_SERIES_DAILY")  # ingest stock details for 10 symbols
+    timeseries_response = await ingest_from_api("TIME_SERIES_DAILY")  # ingest stock details for 10 symbols
     overview_response = await ingest_from_api("OVERVIEW")  # ingest overview details for 10 symbols
     print("Got timeseries data for all symbols")
     print(f"Got overview data for all symbols {overview_response}")
-    # timeseries_changed_structure = change_structure(timeseries_response, "timeseries")
+    timeseries_changed_structure = change_structure(timeseries_response, "timeseries")
     overview_changed_structure = change_structure(overview_response, "overview")
-    # store_data_to_db(timeseries_changed_structure, "timeseries")
+    store_data_to_db(timeseries_changed_structure, "timeseries")
     store_data_to_db(overview_changed_structure, "overview")
 
 
 # Responsibility : To call api with required parameters for all symbols and aggregate the result
-async def ingest_from_api(function):
-    complete_result = []  # list of json response i.e. dictionary
-    for company in COMPANIES:
-        result = await ingest_data_for_symbol(symbol=company['symbol'], function=function)
-        complete_result.append(result)
-    return complete_result
+# async def ingest_from_api(function):
+#     complete_result = []  # list of json response i.e. dictionary
+#     for company in COMPANIES:
+#         result = await ingest_data_for_symbol(symbol=company['symbol'], function=function)
+#         complete_result.append(result)
+#     return complete_result
 
+async def ingest_from_api(function):
+    tasks = [
+        ingest_data_for_symbol(symbol=company['symbol'], function=function)
+        for company in COMPANIES
+    ]
+    # Run all with 1s stagger to respect rate limits
+    results = []
+    for task in tasks:
+        results.append(await task)
+        await asyncio.sleep(1)
+    return results
 
 # Responsibility : To call api and get result for single symbol
+# async def ingest_data_for_symbol(symbol, function):
+#     await asyncio.sleep(1)  # due to API limitation in free package we have to add 1 second delay
+#     api_key = os.getenv("API_KEY")
+#     url = f"{BASE_URL}query?function={function}&symbol={symbol}&apikey={api_key}"
+#     return requests.get(url).json()  # todo change this to aiohttp since requests is actually blocking
+
 async def ingest_data_for_symbol(symbol, function):
-    await asyncio.sleep(1)  # due to API limitation in free package we have to add 1 second delay
+    await asyncio.sleep(1) # due to API limitation in free package we have to add 1 second delay
     api_key = os.getenv("API_KEY")
     url = f"{BASE_URL}query?function={function}&symbol={symbol}&apikey={api_key}"
-    return requests.get(url).json()  # todo change this to aiohttp since requests is actually blocking
 
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            return await response.json()
 
 # Responsibility : To change the json response into the required table structure
 def change_structure(response, api_type):
@@ -208,7 +228,6 @@ def load_data_timeseries(data, filename, target_table):
 
     columns = [
         "symbol",
-        # "ingestion_date",
         "timezone",
         "date",
         "open",
@@ -244,7 +263,6 @@ def load_data_overview(data, filename, target_table):
     engine = get_db_engine()
     columns = [
         "symbol",
-        # "ingestion_date",
         "asset_type", "name", "description", "cik", "exchange", "currency",
         "country", "sector", "industry", "address", "official_site", "fiscal_year_end", "latest_quarter",
         "market_capitalization", "ebitda", "pe_ratio", "peg_ratio", "book_value", "dividend_per_share",

@@ -1,11 +1,11 @@
 # Todo
-    1 (Its a premium feature to use full, we are anyways using compact only) Think how to handle full and delta
-        load (maybe use 'compact' and 'full' in api based on if table is empty or full)
-    2 Add merge or upsert logic to tables so that you don't get duplicate
-    3 Think what to show in dashboard (minimal UI only)
-    4 Add streamlit logic for dashboard
-    5 Add Proper Log and polish remaining project
-    6 Add a refresh data button on dashboard
+    0 FIX ISSUE : Loading more than 1 symbol from start to end gets stuck while loading data to MYSQL I guess for some symbols only not all
+    1 Check merge and upsert logic
+    2 Check if all 3 layers work together at the same time or not
+    3 Add refresh button logic in dashboard
+    4 Add Proper Log
+    5 Add proper error handling atleast for dashboard and API call
+    6 Fix comments and any bad code
     7 Deploy dashboard and mysql server on web so that you can give link and anyone can see it
 
 
