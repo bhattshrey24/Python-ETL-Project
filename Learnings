@@ -1,8 +1,17 @@
-While ingesting data I wanted to have surrogate key because API was very unpredictable and was giving
+1. While ingesting data I wanted to have surrogate key because API was very unpredictable and was giving
 nulls for symbol as well So in order to tackle it I thought of using surrogate key but then it prevented
 me from implementing Upsert Logic at ingestion layer because we need some valid PK to know if record is
 duplicate or new. So I rejected rows in ingestion layer itself which had null for symbol and date because these were
 my PK. So basically I did some amount of data cleaning at ingestion layer
 
-I did not choose Power BI because it did not had free version for mac and I wanted to showcase my python skills
+2. I did not choose Power BI because it did not had free version for mac and I wanted to showcase my python skills
 because of which I used streamlit
+
+3. When I was trying to load for 10 symbols at a time then loading to mysql use to pause indefinitely, So I checked
+whether I am doing too many connections to MySQL, added prints to see exactly where it is stopping, then I tried
+fixing concurrency issue by adding thread but still same issue was happening but then I found out that using "as new row"
+in the "overview" script was making it pause because it was a known bug "pymysql protocol freeze on AS new_row syntax". So
+I switched the script to previous version i.e. I used "insert into values"
+
+
+

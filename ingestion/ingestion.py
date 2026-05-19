@@ -1,4 +1,5 @@
-import requests
+from functools import partial
+
 import asyncio
 import aiohttp
 
@@ -16,16 +17,31 @@ load_dotenv()
 
 
 # Responsibility : Ingest data from different URLs
-async def ingest_data():
-    timeseries_response = await ingest_from_api("TIME_SERIES_DAILY")  # ingest stock details for 10 symbols
-    overview_response = await ingest_from_api("OVERVIEW")  # ingest overview details for 10 symbols
-    print("Got timeseries data for all symbols")
-    print(f"Got overview data for all symbols {overview_response}")
-    timeseries_changed_structure = change_structure(timeseries_response, "timeseries")
-    overview_changed_structure = change_structure(overview_response, "overview")
-    store_data_to_db(timeseries_changed_structure, "timeseries")
-    store_data_to_db(overview_changed_structure, "overview")
+# async def ingest_data():
+#     timeseries_response = await ingest_from_api("TIME_SERIES_DAILY")  # ingest stock details for 10 symbols
+#     overview_response = await ingest_from_api("OVERVIEW")  # ingest overview details for 10 symbols
+#     print("Got timeseries data for all symbols")
+#     print(f"Got overview data for all symbols {overview_response}")
+#     timeseries_changed_structure = change_structure(timeseries_response, "timeseries")
+#     overview_changed_structure = change_structure(overview_response, "overview")
+#     create_table()
+#     store_data_to_db(timeseries_changed_structure, "timeseries")
+#     store_data_to_db(overview_changed_structure, "overview")
 
+
+# ingestion.py
+async def ingest_data():
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, create_table)  # runs once, belongs here ✅
+
+    timeseries_response = await ingest_from_api("TIME_SERIES_DAILY")
+    overview_response = await ingest_from_api("OVERVIEW")
+
+    timeseries_data = change_structure(timeseries_response, "timeseries")
+    overview_data = change_structure(overview_response, "overview")
+
+    await loop.run_in_executor(None, partial(load_data, timeseries_data, "timeseries"))
+    await loop.run_in_executor(None, partial(load_data, overview_data, "overview"))
 
 # Responsibility : To call api with required parameters for all symbols and aggregate the result
 # async def ingest_from_api(function):
@@ -182,18 +198,18 @@ def change_structure_for_overview(response):
 # Responsibility : Store the data into db
 def store_data_to_db(cleaned_data, api_type):
     print("Storing data to db....")
-    create_db()
-    create_table()
+    # create_db()
+    # create_table()
     load_data(cleaned_data, api_type)
 
 
 # Responsibility : create database if not exist
-def create_db():
-    engine = get_app_engine()
-    with engine.connect() as conn:
-        conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {db}"))
-        conn.commit()
-        print("Database created")
+# def create_db():
+#     engine = get_app_engine()
+#     with engine.connect() as conn:
+#         conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {db}"))
+#         conn.commit()
+#         print("Database created")
 
 
 # Responsibility : create table based on api_type
@@ -247,9 +263,13 @@ def load_data_timeseries(data, filename, target_table):
                 fixed_row[col] = row[col] if col in row else None
             normalized_data.append(fixed_row)
 
+    if not normalized_data:
+        print("⚠️ No valid timeseries rows to insert, skipping.")
+        return  # ← exit cleanly instead of crashing
+
     raw_sql = load_sql(filename)
     final_sql = raw_sql.format(target_table=target_table)
-
+    print(f"normalized data : {normalized_data}")
     with engine.connect() as conn:
         query = text(final_sql)
         conn.execute(query, normalized_data)
@@ -259,8 +279,46 @@ def load_data_timeseries(data, filename, target_table):
 
 
 # Responsibility : load data for overview master table
+# def load_data_overview(data, filename, target_table):
+#     engine = get_db_engine()
+#     columns = [
+#         "symbol",
+#         "asset_type", "name", "description", "cik", "exchange", "currency",
+#         "country", "sector", "industry", "address", "official_site", "fiscal_year_end", "latest_quarter",
+#         "market_capitalization", "ebitda", "pe_ratio", "peg_ratio", "book_value", "dividend_per_share",
+#         "dividend_yield", "eps", "revenue_per_share_ttm", "profit_margin", "operating_margin_ttm",
+#         "return_on_assets_ttm", "return_on_equity_ttm", "revenue_ttm", "gross_profit_ttm",
+#         "diluted_eps_ttm", "quarterly_earnings_growth_yoy", "quarterly_revenue_growth_yoy",
+#         "analyst_target_price", "analyst_rating_strong_buy", "analyst_rating_buy",
+#         "analyst_rating_hold", "analyst_rating_sell", "analyst_rating_strong_sell", "trailing_pe",
+#         "forward_pe", "price_to_sales_ratio_ttm", "price_to_book_ratio", "ev_to_revenue", "ev_to_ebitda",
+#         "beta", "week_52_high", "week_52_low", "moving_avg_50d", "moving_avg_200d", "shares_outstanding",
+#         "shares_float", "percent_insiders", "percent_institutions", "dividend_date", "ex_dividend_date"
+#     ]
+#
+#     normalized_data = []
+#     for row in data:
+#         if 'symbol' in row and row["symbol"] is not None:
+#             fixed_row = {}
+#             for col in columns:
+#                 fixed_row[col] = row[col] if col in row else None
+#             normalized_data.append(fixed_row)
+#
+#     raw_sql = load_sql(filename)
+#     final_sql = raw_sql.format(target_table=target_table)
+#     print(f"normalized data : {normalized_data}")
+#     with engine.connect() as conn:
+#         query = text(final_sql)
+#         conn.execute(query, normalized_data)
+#         conn.commit()
+#
+#     print("Overview data added to table")
+
+
 def load_data_overview(data, filename, target_table):
+    print(f"📍 entered, data rows: {len(data)}")
     engine = get_db_engine()
+    print(f"📍 got engine")
     columns = [
         "symbol",
         "asset_type", "name", "description", "cik", "exchange", "currency",
@@ -284,15 +342,30 @@ def load_data_overview(data, filename, target_table):
                 fixed_row[col] = row[col] if col in row else None
             normalized_data.append(fixed_row)
 
+    if not normalized_data:
+        print("⚠️ No valid overview rows to insert, skipping.")
+        return  # ← exit cleanly instead of crashing
+
+    print(f"📍 normalized to {len(normalized_data)} rows")
     raw_sql = load_sql(filename)
     final_sql = raw_sql.format(target_table=target_table)
+    print(f"📍 SQL prepared")
 
+    print(f"📍 calling engine.connect()...")
     with engine.connect() as conn:
+        print(f"📍 connection acquired ✅")
         query = text(final_sql)
+        print(f"📍 calling execute...")
         conn.execute(query, normalized_data)
+        print(f"📍 execute done ✅")
         conn.commit()
+        print(f"📍 commit done ✅")
 
     print("Overview data added to table")
+
+
+
+
 
 
 # Responsibility : Api returns everything as String so it might return "None" for float type or any other unexpected result so in order to tackle that this function cleans the data if its weird

@@ -36,20 +36,18 @@ def get_app_engine():
 
     return app_engine
 
-
 def get_db_engine():
     global db_engine
-
-    with _engine_lock:
+    with _engine_lock: # stops 2 or more threads from creating the engine again
         if db_engine is None:
             db_engine = create_engine(
                 f"mysql+pymysql://{username}:{password}@{host}:{port}/{db}",
                 pool_pre_ping=True,
-                pool_timeout=10,
+                pool_timeout=30,      # wait up to 30s for a free connection
+                pool_recycle=1800,    # recycle connections every 30 mins
+                                      # prevents MySQL's 8hr timeout from killing them
                 connect_args={"connect_timeout": 10}
             )
-
     return db_engine
-
 
 Base = declarative_base()  # Its just a base class that all ORM models inherit from.
