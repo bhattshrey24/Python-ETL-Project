@@ -15,3 +15,6 @@ I switched the script to previous version i.e. I used "insert into values"
 
 
 
+# Use below command to run
+# source /Users/shrey/PycharmProjects/PythonDEProject/.venv/bin/activate
+# streamlit run /Users/shrey/PycharmProjects/PythonDEProject/dashboard/app.py

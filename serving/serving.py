@@ -1,4 +1,5 @@
 import os
+import logging
 
 from sqlalchemy import text
 
@@ -9,10 +10,15 @@ from config.db_constants import MY_DB, SERVING_TIMESERIES_VW, TRANSFORMATION_CLE
     TRANSFORMATION_STOCK_MOVING_AVERAGES_TABLE
 from db.my_db import get_db_engine
 
+# Module-level logger — name will be "serving.serving"
+# Lets you filter logs per pipeline layer (ingestion / transformation / serving) when debugging
+logger = logging.getLogger(__name__)
+
 
 async def serve_data():
+    logger.info("Starting serving layer")
     create_views()
-    print("exposing data ...")
+    logger.info("Serving layer completed successfully")
 
 
 def create_views():
@@ -41,7 +47,7 @@ def create_views():
         view_name=f"{MY_DB}.{SERVING_STOCK_MOVING_AVERAGES_VW}",
         source_table=f"{MY_DB}.{TRANSFORMATION_STOCK_MOVING_AVERAGES_TABLE}",
     )
-    print("views created")
+    logger.info("All views created")
 
 
 def load_sql(filename: str):
@@ -53,11 +59,20 @@ def load_sql(filename: str):
 
 
 def execute_transformation(filename: str, source_table: str, view_name: str):
+    logger.info(f"Creating view: {filename} | source={source_table} → view={view_name}")
     raw_sql = load_sql(filename)
 
     # Inject table names into placeholders
     final_sql = raw_sql.format(source_table=source_table, view_name=view_name)
+    # debug level — full DDL bodies are long; only useful when something's wrong
+    logger.debug(f"Final SQL for {filename}: {final_sql}")
+
     engine = get_db_engine()
-    with engine.begin() as conn:  # begin() auto-commits or rolls back on error
-        conn.execute(text(final_sql))
-        print(f"{filename} executed successfully")
+    try:
+        with engine.begin() as conn:  # begin() auto-commits or rolls back on error
+            conn.execute(text(final_sql))
+        logger.info(f"{filename} executed successfully")
+    except Exception as e:
+        # exc_info=True captures the full stack trace — critical for spotting which view definition broke
+        logger.error(f"Failed to execute {filename}: {e}", exc_info=True)
+        raise   # re-raise so pipeline halts and Streamlit can show the failure

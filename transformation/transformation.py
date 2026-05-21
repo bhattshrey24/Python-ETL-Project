@@ -15,12 +15,18 @@ from db.my_db import get_db_engine, Base
 from transformation.models import CleanedTimeseriesTable, BadTimeseriesTable, CleanedOverviewTable, BadOverviewTable, \
     DailyStockPerformance, StockMovingAverages, SectorPerformance
 import os
+import logging
+
+# Module-level logger — name will be "transformation.transformation"
+# Helps filter logs by module when debugging multi-layer pipelines
+logger = logging.getLogger(__name__)
 
 
 async def transform_data():
+    logger.info("Starting transformation layer")
     create_table()
     run_all_transformations()
-    print("Transforming data....")
+    logger.info("Transformation layer completed successfully")
 
 
 def run_all_transformations():
@@ -75,7 +81,7 @@ def create_table():
             SectorPerformance.__table__,
         ],
     )
-    print("Transformation tables created if not present")
+    logger.info("Transformation tables created if not present")
 
 
 def load_sql(filename: str):
@@ -99,11 +105,21 @@ def execute_transformation(filename: str, source_table: str, target_table: str):
         source_table: Fully qualified source e.g. 'stocks_db.transformation_cleaned_timeseries_table'
         target_table: Fully qualified target e.g. 'stocks_db.transformation_daily_performance_table'
     """
+    logger.info(f"Executing transformation: {filename} | {source_table} → {target_table}")
     raw_sql = load_sql(filename)
 
     # Inject table names into placeholders
     final_sql = raw_sql.format(source_table=source_table, target_table=target_table)
+    # debug level — full SQL bodies are long; only useful when something's wrong
+    logger.debug(f"Final SQL for {filename}: {final_sql}")
+
     engine = get_db_engine()
-    with engine.begin() as conn:  # begin() auto-commits or rolls back on error
-        conn.execute(text(final_sql))
-        print(f"{filename} executed successfully")
+    try:
+        with engine.begin() as conn:  # begin() auto-commits or rolls back on error
+            conn.execute(text(final_sql))
+        logger.info(f"{filename} executed successfully")
+    except Exception as e:
+        # exc_info=True attaches the full stack trace to the log entry
+        # Critical for debugging SQL failures — tells you exactly which line broke
+        logger.error(f"Failed to execute {filename}: {e}", exc_info=True)
+        raise   # re-raise so pipeline halts properly and dashboard catches the failure

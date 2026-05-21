@@ -2,6 +2,7 @@ from functools import partial
 
 import asyncio
 import aiohttp
+import logging
 
 from sqlalchemy import text
 
@@ -15,26 +16,21 @@ from ingestion.models import *
 
 load_dotenv()
 
-
-# Responsibility : Ingest data from different URLs
-# async def ingest_data():
-#     timeseries_response = await ingest_from_api("TIME_SERIES_DAILY")  # ingest stock details for 10 symbols
-#     overview_response = await ingest_from_api("OVERVIEW")  # ingest overview details for 10 symbols
-#     print("Got timeseries data for all symbols")
-#     print(f"Got overview data for all symbols {overview_response}")
-#     timeseries_changed_structure = change_structure(timeseries_response, "timeseries")
-#     overview_changed_structure = change_structure(overview_response, "overview")
-#     create_table()
-#     store_data_to_db(timeseries_changed_structure, "timeseries")
-#     store_data_to_db(overview_changed_structure, "overview")
+# Set up module-level logger
+# Using __name__ ensures the logger is named "ingestion.ingestion" — useful for filtering logs by module
+logger = logging.getLogger(__name__)
 
 
 # ingestion.py
 async def ingest_data():
+    logger.info("Starting ingestion layer")
     loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, create_table)  # runs once, belongs here ✅
+    await loop.run_in_executor(None, create_table)
 
+    logger.info("Fetching TIME_SERIES_DAILY from API")
     timeseries_response = await ingest_from_api("TIME_SERIES_DAILY")
+
+    logger.info("Fetching OVERVIEW from API")
     overview_response = await ingest_from_api("OVERVIEW")
 
     timeseries_data = change_structure(timeseries_response, "timeseries")
@@ -43,41 +39,46 @@ async def ingest_data():
     await loop.run_in_executor(None, partial(load_data, timeseries_data, "timeseries"))
     await loop.run_in_executor(None, partial(load_data, overview_data, "overview"))
 
-# Responsibility : To call api with required parameters for all symbols and aggregate the result
-# async def ingest_from_api(function):
-#     complete_result = []  # list of json response i.e. dictionary
-#     for company in COMPANIES:
-#         result = await ingest_data_for_symbol(symbol=company['symbol'], function=function)
-#         complete_result.append(result)
-#     return complete_result
+    logger.info("Ingestion layer completed successfully")
 
+
+# Responsibility : To call api with required parameters for all symbols and aggregate the result
 async def ingest_from_api(function):
-    tasks = [
-        ingest_data_for_symbol(symbol=company['symbol'], function=function)
-        for company in COMPANIES
-    ]
-    # Run all with 1s stagger to respect rate limits
     results = []
-    for task in tasks:
-        results.append(await task)
+    for company in COMPANIES: # Coroutine created and awaited in same iteration — never orphaned
+        logger.debug(f"Calling API for {company['symbol']} | function={function}")
+        result = await ingest_data_for_symbol(
+            symbol=company['symbol'], function=function
+        )
+        results.append(result)
         await asyncio.sleep(1)
     return results
 
-# Responsibility : To call api and get result for single symbol
-# async def ingest_data_for_symbol(symbol, function):
-#     await asyncio.sleep(1)  # due to API limitation in free package we have to add 1 second delay
-#     api_key = os.getenv("API_KEY")
-#     url = f"{BASE_URL}query?function={function}&symbol={symbol}&apikey={api_key}"
-#     return requests.get(url).json()  # todo change this to aiohttp since requests is actually blocking
 
+
+class RateLimitError(Exception):
+    """Raised when Alpha Vantage API rate limit is hit."""
+    pass
+
+# Responsibility : To call api and get result for single symbol
 async def ingest_data_for_symbol(symbol, function):
-    await asyncio.sleep(1) # due to API limitation in free package we have to add 1 second delay
+    await asyncio.sleep(1)
     api_key = os.getenv("API_KEY")
     url = f"{BASE_URL}query?function={function}&symbol={symbol}&apikey={api_key}"
 
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=30)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         async with session.get(url) as response:
-            return await response.json()
+            data = await response.json()
+
+            # Alpha Vantage signals rate limit via these keys
+            if "Information" in data or "Note" in data:
+                rate_limit_msg = data.get("Information") or data.get("Note")
+                logger.error(f"Rate limit hit for {symbol}/{function}: {rate_limit_msg}")
+                raise RateLimitError(rate_limit_msg)
+            return data
+
+
 
 # Responsibility : To change the json response into the required table structure
 def change_structure(response, api_type):
@@ -90,11 +91,11 @@ def change_structure(response, api_type):
 
 # Responsibility : To change structure for overview response into the required table structure
 def change_structure_for_timeseries(response):
-    print(response)
+    # debug level — full API responses are verbose, only useful when actively debugging
+    logger.debug(f"Raw timeseries response: {response}")
     cleaned_data = []  # list of dictionaries where each row is a dictionary
     for data in response:
-        meta = data.get("Meta Data",
-                        {})  # if key "Meta Data" is not present then this will return empty dictionary instead of None
+        meta = data.get("Meta Data",{})  # if key "Meta Data" is not present then this will return empty dictionary instead of None
         tz = clean(meta.get("5. Time Zone"), str)
         symbol = clean(meta.get("2. Symbol"), str)
         timeseries = data.get("Time Series (Daily)", {})
@@ -113,12 +114,13 @@ def change_structure_for_timeseries(response):
 
             cleaned_data.append(row)
 
+    logger.info(f"Structured {len(cleaned_data)} timeseries rows")
     return cleaned_data
 
 
 # Responsibility : To change structure for overview response into the required table structure
 def change_structure_for_overview(response):
-    print(response)
+    logger.debug(f"Raw overview response: {response}")
     cleaned_data = []
 
     for data in response:
@@ -192,32 +194,23 @@ def change_structure_for_overview(response):
 
         cleaned_data.append(row)
 
+    logger.info(f"Structured {len(cleaned_data)} overview rows")
     return cleaned_data
 
 
 # Responsibility : Store the data into db
 def store_data_to_db(cleaned_data, api_type):
-    print("Storing data to db....")
+    logger.info("Storing data to db....")
     # create_db()
     # create_table()
     load_data(cleaned_data, api_type)
-
-
-# Responsibility : create database if not exist
-# def create_db():
-#     engine = get_app_engine()
-#     with engine.connect() as conn:
-#         conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {db}"))
-#         conn.commit()
-#         print("Database created")
-
 
 # Responsibility : create table based on api_type
 def create_table():
     engine = get_db_engine()
     Base.metadata.create_all(engine, tables=[MasterStockTable.__table__,
                                              MasterOverviewTable.__table__])  # this way we only create Ingestion tables right now
-    print("Ingestion Tables created if not present")
+    logger.info("Ingestion Tables created if not present")
 
 
 # Responsibilities : loads required sql file
@@ -231,7 +224,7 @@ def load_sql(filename: str):
 
 # Responsibility : load data to the required table for required api_type
 def load_data(data, api_type):
-    print("Loading data....")
+    logger.info(f"Loading data for api_type={api_type}")
     if api_type == "timeseries":
         load_data_timeseries(data, "create_ingestion_timeseries_table.sql", f"{MY_DB}.{INGESTION_TIMESERIES_TABLE}")
     else:
@@ -264,61 +257,30 @@ def load_data_timeseries(data, filename, target_table):
             normalized_data.append(fixed_row)
 
     if not normalized_data:
-        print("⚠️ No valid timeseries rows to insert, skipping.")
+        logger.warning("No valid timeseries rows to insert, skipping.")
         return  # ← exit cleanly instead of crashing
 
     raw_sql = load_sql(filename)
     final_sql = raw_sql.format(target_table=target_table)
-    print(f"normalized data : {normalized_data}")
-    with engine.connect() as conn:
-        query = text(final_sql)
-        conn.execute(query, normalized_data)
-        conn.commit()
+    # debug level — full row dump is huge, only relevant when investigating issues
+    logger.debug(f"Normalized timeseries data: {normalized_data}")
+    logger.info(f"Inserting {len(normalized_data)} timeseries rows into {target_table}")
 
-    print("Data added to table")
+    try:
+        with engine.connect() as conn:
+            query = text(final_sql)
+            conn.execute(query, normalized_data)
+            conn.commit()
+        logger.info(f"Timeseries data added to {target_table}")
+    except Exception as e:
+        # exc_info=True captures the full stack trace in the log — invaluable for debugging
+        logger.error(f"Failed to insert timeseries data into {target_table}: {e}", exc_info=True)
+        raise
 
 
 # Responsibility : load data for overview master table
-# def load_data_overview(data, filename, target_table):
-#     engine = get_db_engine()
-#     columns = [
-#         "symbol",
-#         "asset_type", "name", "description", "cik", "exchange", "currency",
-#         "country", "sector", "industry", "address", "official_site", "fiscal_year_end", "latest_quarter",
-#         "market_capitalization", "ebitda", "pe_ratio", "peg_ratio", "book_value", "dividend_per_share",
-#         "dividend_yield", "eps", "revenue_per_share_ttm", "profit_margin", "operating_margin_ttm",
-#         "return_on_assets_ttm", "return_on_equity_ttm", "revenue_ttm", "gross_profit_ttm",
-#         "diluted_eps_ttm", "quarterly_earnings_growth_yoy", "quarterly_revenue_growth_yoy",
-#         "analyst_target_price", "analyst_rating_strong_buy", "analyst_rating_buy",
-#         "analyst_rating_hold", "analyst_rating_sell", "analyst_rating_strong_sell", "trailing_pe",
-#         "forward_pe", "price_to_sales_ratio_ttm", "price_to_book_ratio", "ev_to_revenue", "ev_to_ebitda",
-#         "beta", "week_52_high", "week_52_low", "moving_avg_50d", "moving_avg_200d", "shares_outstanding",
-#         "shares_float", "percent_insiders", "percent_institutions", "dividend_date", "ex_dividend_date"
-#     ]
-#
-#     normalized_data = []
-#     for row in data:
-#         if 'symbol' in row and row["symbol"] is not None:
-#             fixed_row = {}
-#             for col in columns:
-#                 fixed_row[col] = row[col] if col in row else None
-#             normalized_data.append(fixed_row)
-#
-#     raw_sql = load_sql(filename)
-#     final_sql = raw_sql.format(target_table=target_table)
-#     print(f"normalized data : {normalized_data}")
-#     with engine.connect() as conn:
-#         query = text(final_sql)
-#         conn.execute(query, normalized_data)
-#         conn.commit()
-#
-#     print("Overview data added to table")
-
-
 def load_data_overview(data, filename, target_table):
-    print(f"📍 entered, data rows: {len(data)}")
     engine = get_db_engine()
-    print(f"📍 got engine")
     columns = [
         "symbol",
         "asset_type", "name", "description", "cik", "exchange", "currency",
@@ -343,29 +305,23 @@ def load_data_overview(data, filename, target_table):
             normalized_data.append(fixed_row)
 
     if not normalized_data:
-        print("⚠️ No valid overview rows to insert, skipping.")
+        logger.warning("No valid overview rows to insert, skipping.")
         return  # ← exit cleanly instead of crashing
 
-    print(f"📍 normalized to {len(normalized_data)} rows")
     raw_sql = load_sql(filename)
     final_sql = raw_sql.format(target_table=target_table)
-    print(f"📍 SQL prepared")
+    logger.debug(f"Normalized overview data: {normalized_data}")
+    logger.info(f"Inserting {len(normalized_data)} overview rows into {target_table}")
 
-    print(f"📍 calling engine.connect()...")
-    with engine.connect() as conn:
-        print(f"📍 connection acquired ✅")
-        query = text(final_sql)
-        print(f"📍 calling execute...")
-        conn.execute(query, normalized_data)
-        print(f"📍 execute done ✅")
-        conn.commit()
-        print(f"📍 commit done ✅")
-
-    print("Overview data added to table")
-
-
-
-
+    try:
+        with engine.connect() as conn:
+            query = text(final_sql)
+            conn.execute(query, normalized_data)
+            conn.commit()
+        logger.info(f"Overview data added to {target_table}")
+    except Exception as e:
+        logger.error(f"Failed to insert overview data into {target_table}: {e}", exc_info=True)
+        raise
 
 
 # Responsibility : Api returns everything as String so it might return "None" for float type or any other unexpected result so in order to tackle that this function cleans the data if its weird
