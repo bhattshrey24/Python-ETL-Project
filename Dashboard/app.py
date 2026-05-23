@@ -1,5 +1,7 @@
 import sys
-sys.path.insert(0, '/Users/shrey/PycharmProjects/PythonDEProject')
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# sys.path.insert(0, '/Users/shrey/PycharmProjects/PythonDEProject')
 
 # NOTE : All the imports should start from here otherwise streamlit wont be able to find it
 
