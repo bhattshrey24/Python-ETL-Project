@@ -11,15 +11,15 @@ from datetime import datetime, timezone, date
 from config.db_constants import INGESTION_TIMESERIES_TABLE, \
     INGESTION_OVERVIEW_TABLE  # I guess this triggers registering of these ORM classes to Base
 from db.my_db import *
-from dotenv import load_dotenv
 from ingestion.models import *
 
-load_dotenv()
+import streamlit as st
+
+api_key  = st.secrets["api"]["key"]
 
 # Set up module-level logger
 # Using __name__ ensures the logger is named "ingestion.ingestion" — useful for filtering logs by module
 logger = logging.getLogger(__name__)
-
 
 # ingestion.py
 async def ingest_data():
@@ -63,7 +63,6 @@ class RateLimitError(Exception):
 # Responsibility : To call api and get result for single symbol
 async def ingest_data_for_symbol(symbol, function):
     await asyncio.sleep(1)
-    api_key = os.getenv("API_KEY")
     url = f"{BASE_URL}query?function={function}&symbol={symbol}&apikey={api_key}"
 
     timeout = aiohttp.ClientTimeout(total=30)

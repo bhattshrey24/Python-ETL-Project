@@ -1,17 +1,15 @@
 import os
 from urllib.parse import quote_plus
 from sqlalchemy import create_engine
-from dotenv import load_dotenv
 from sqlalchemy.orm import declarative_base
 from config.db_constants import MY_DB
 import threading
+import streamlit as st
 
-load_dotenv()
-
-username = os.getenv("MY_SQL_USERNAME")
-password = quote_plus(os.getenv("MY_SQL_PASSWORD"))
-host = os.getenv("MY_SQL_HOST")
-port = os.getenv("MY_SQL_PORT")
+username   = st.secrets["mysql"]["username"]
+password   = quote_plus(st.secrets["mysql"]["password"]) # asdasd@24 → asdasd%4024 and mysql knows %40 means @
+host       = st.secrets["mysql"]["host"]
+port       = int(st.secrets["mysql"]["port"])  #  MySQL expects port as Int
 db = MY_DB
 
 # Using singleton pattern, so that we don't create multiple connections to db everytime we want to access it
@@ -21,7 +19,6 @@ db_engine = None
 _engine_lock = threading.Lock() # Since db_engine is a module-level global, if two coroutines
 # both check if db_engine is None at the same time before either has set it, you'll
 # create two engines
-
 
 def get_app_engine():
     global app_engine  # Accessing global "app_engine" otherwise it would have created local variable instead of using global one
