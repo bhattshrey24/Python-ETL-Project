@@ -2,7 +2,7 @@ import os
 from urllib.parse import quote_plus
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base
-from config.db_constants import MY_DB
+# from config.db_constants import MY_DB
 import threading
 import streamlit as st
 
@@ -10,7 +10,8 @@ username   = st.secrets["mysql"]["username"]
 password   = quote_plus(st.secrets["mysql"]["password"]) # asdasd@24 → asdasd%4024 and mysql knows %40 means @
 host       = st.secrets["mysql"]["host"]
 port       = int(st.secrets["mysql"]["port"])  #  MySQL expects port as Int
-db = MY_DB
+db = st.secrets["mysql"]["my_db"]
+
 
 # Using singleton pattern, so that we don't create multiple connections to db everytime we want to access it
 app_engine = None

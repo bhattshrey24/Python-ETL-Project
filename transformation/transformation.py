@@ -3,7 +3,6 @@ from config.db_constants import (
     TRANSFORMATION_BAD_TIMESERIES_TABLE,
     TRANSFORMATION_CLEANED_OVERVIEW_TABLE,
     TRANSFORMATION_BAD_OVERVIEW_TABLE,
-    MY_DB,
     INGESTION_OVERVIEW_TABLE,
     INGESTION_TIMESERIES_TABLE,
     TRANSFORMATION_DAILY_STOCK_PERFORMANCE_TABLE,
@@ -16,6 +15,9 @@ from transformation.models import CleanedTimeseriesTable, BadTimeseriesTable, Cl
     DailyStockPerformance, StockMovingAverages, SectorPerformance
 import os
 import logging
+import streamlit as st
+MY_DB = st.secrets["mysql"]["my_db"]
+
 
 # Module-level logger — name will be "transformation.transformation"
 # Helps filter logs by module when debugging multi-layer pipelines
@@ -65,7 +67,6 @@ def run_all_transformations():
         target_table=f"{MY_DB}.{TRANSFORMATION_STOCK_MOVING_AVERAGES_TABLE}",
         source_table=f"{MY_DB}.{TRANSFORMATION_CLEANED_TIMESERIES_TABLE}",
     )
-
 
 def create_table():
     engine = get_db_engine()

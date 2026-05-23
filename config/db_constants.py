@@ -1,4 +1,4 @@
-MY_DB = "stocks_db"
+# MY_DB = "python_etl_project_db_helpfultoo"
 
 INGESTION_TIMESERIES_TABLE = "ingestion_master_stock_table"
 INGESTION_OVERVIEW_TABLE = "ingestion_master_overview_table"

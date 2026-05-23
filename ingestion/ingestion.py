@@ -16,6 +16,7 @@ from ingestion.models import *
 import streamlit as st
 
 api_key  = st.secrets["api"]["key"]
+MY_DB = st.secrets["mysql"]["my_db"]
 
 # Set up module-level logger
 # Using __name__ ensures the logger is named "ingestion.ingestion" — useful for filtering logs by module

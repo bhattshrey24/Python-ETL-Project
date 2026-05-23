@@ -27,6 +27,7 @@ from db.my_db import get_db_engine
 from pipeline import main as run_pipeline
 from ingestion.ingestion import RateLimitError
 
+MY_DB = st.secrets["mysql"]["my_db"]
 
 # Use below command to run
 # source /Users/shrey/PycharmProjects/PythonDEProject/.venv/bin/activate
