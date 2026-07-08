@@ -35,6 +35,12 @@ The **Streamlit dashboard is built directly on top of the Serving (Gold) layer**
 ## Live Dashboard Link :
 ###  https://python-etl-project-rtff47gxug6aqcegxowh4x.streamlit.app/
 
+<img width="1408" height="835" alt="Screenshot 2026-07-08 at 12 20 46 PM" src="https://github.com/user-attachments/assets/a7ea9e5b-5730-4918-822f-bcde9df6f55b" />
+
+<img width="1405" height="839" alt="Screenshot 2026-07-08 at 12 21 08 PM" src="https://github.com/user-attachments/assets/4f28aeb2-edd6-49ad-83e4-ddd3aff2c6a8" />
+
+
+
 ## Notes :
 - This project uses the free Alpha Vantage API tier, which has request rate limitations.
 - Dashboard refresh may take 45–60 seconds depending due to free tier limitations.
